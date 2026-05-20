@@ -15,7 +15,7 @@ import * as Speech from 'expo-speech';
 import { useChatStore } from '../store/chatStore';
 import { wsManager } from '../services/websocket';
 
-export default function ChatScreen() {
+export default function ChatScreen({ navigation }: any) {
   const { messages, isThinking, addMessage, setIsThinking } = useChatStore();
   const [inputText, setInputText] = useState('');
   const [recording, setRecording] = useState<Audio.Recording | undefined>();
@@ -105,8 +105,14 @@ export default function ChatScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>MEGHA</Text>
-          <Text style={styles.headerSubtitle}>Soul Engine Online</Text>
+          <View style={{ width: 30 }} />
+          <View style={{ alignItems: 'center' }}>
+            <Text style={styles.headerTitle}>MEGHA</Text>
+            <Text style={styles.headerSubtitle}>Soul Engine Online</Text>
+          </View>
+          <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={{ width: 30 }}>
+            <Text style={{ fontSize: 20 }}>⚙️</Text>
+          </TouchableOpacity>
         </View>
 
         <FlatList

@@ -1,77 +1,55 @@
 import { useChatStore } from '../store/chatStore';
 
-// Mock WS URL for local development/FastAPI
-const WS_URL = 'ws://localhost:8000/ws/megha';
+// Fallback local API URL
+const PROXY_URL = 'http://localhost:3000/api/megha/chat';
 
 class WebSocketManager {
-  private ws: WebSocket | null = null;
-  private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-
   connect() {
-    if (this.ws?.readyState === WebSocket.OPEN) return;
-
-    console.log('Connecting to Soul Engine...');
-    this.ws = new WebSocket(WS_URL);
-
-    this.ws.onopen = () => {
-      console.log('Connected to Soul Engine.');
-      this.reconnectAttempts = 0;
-    };
-
-    this.ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        // Handle incoming messages from Megha
-        if (data.type === 'message') {
-          useChatStore.getState().addMessage({
-            role: 'assistant',
-            content: data.content,
-          });
-          useChatStore.getState().setIsThinking(false);
-        } else if (data.type === 'typing') {
-          useChatStore.getState().setIsThinking(true);
-        }
-      } catch (e) {
-        console.error('Failed to parse WS message', e);
-      }
-    };
-
-    this.ws.onclose = () => {
-      console.log('Disconnected from Soul Engine.');
-      this.attemptReconnect();
-    };
-
-    this.ws.onerror = (error) => {
-      console.error('WebSocket Error:', error);
-    };
+    // Note: Replaced actual WebSocket with REST API call to local Proxy server 
+    // to meet the API Key security requirements. Real app might mix REST & WS.
+    console.log('Ready to connect to Soul Engine Proxy...');
   }
 
   async sendMessage(content: string) {
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      
-      // Passively gather environment variables
-      const { gatherTelemetry } = await import('./sensorTelemetry');
-      const telemetry = await gatherTelemetry();
+    
+    // Passively gather environment variables
+    const { gatherTelemetry } = await import('./sensorTelemetry');
+    const telemetry = await gatherTelemetry();
 
-      const payload = {
-        type: 'user_message',
-        content,
-        context: telemetry,
-      };
-      
-      this.ws.send(JSON.stringify(payload));
-    } else {
-      console.warn('Cannot send message, WS not connected.');
-    }
-  }
+    // Reconstruct the message history array for the Anthropic endpoint
+    // We only send the last few messages to save tokens for this demo
+    const chatHistory = useChatStore.getState().messages.slice(-5).map(m => ({
+      role: m.role,
+      content: m.content
+    }));
+    
+    chatHistory.push({ role: 'user', content });
 
-  private attemptReconnect() {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      const timeout = Math.pow(2, this.reconnectAttempts) * 1000;
-      console.log(`Attempting reconnect in ${timeout}ms...`);
-      setTimeout(() => this.connect(), timeout);
+    try {
+      useChatStore.getState().setIsThinking(true);
+      const response = await fetch(PROXY_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: chatHistory,
+          context: telemetry
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.reply) {
+         useChatStore.getState().addMessage({
+            role: 'assistant',
+            content: data.reply,
+         });
+      } else {
+         console.error('Server returned error', data);
+      }
+    } catch (e) {
+      console.error('REST request to proxy failed', e);
+    } finally {
+      useChatStore.getState().setIsThinking(false);
     }
   }
 }
