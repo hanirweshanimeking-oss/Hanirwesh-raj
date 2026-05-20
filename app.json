@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "megha-assistant",
-    "slug": "megha-assistant",
+    "name": "nova-assistant",
+    "slug": "nova-assistant",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
