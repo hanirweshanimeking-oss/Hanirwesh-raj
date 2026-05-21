@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "nova-assistant",
-    "slug": "nova-assistant",
+    "name": "Megha",
+    "slug": "megha",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,7 +13,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.novaassistant"
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +22,14 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
+      "package": "com.anonymous.novaassistant"
     },
     "web": {
       "favicon": "./assets/favicon.png"

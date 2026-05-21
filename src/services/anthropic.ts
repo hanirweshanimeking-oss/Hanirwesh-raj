@@ -1,12 +1,9 @@
-import axios from 'axios';
 import { NOVA_SYSTEM_PROMPT } from '../constants/novaPrompt';
 import { memoryService } from './memory';
 import { toolService } from './tools';
 import { useNovaStore, NovaMode, NovaEmotion } from '../store/novaStore';
 import { processVoiceResponse } from './voice';
-
-// In a real app, do not store this directly here.
-const ANTHROPIC_API_KEY = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY || 'mock-key';
+import * as SecureStore from 'expo-secure-store';
 
 // Tool schemas for Claude
 const tools = [
@@ -72,29 +69,39 @@ export async function sendMessageToNova(content: string, mode: NovaMode) {
     messages.push({ role: 'user', content });
 
     // 2. Call Anthropic
-    const response = await axios.post(
-      'https://api.anthropic.com/v1/messages',
-      {
+    const apiKey = await SecureStore.getItemAsync('ANTHROPIC_API_KEY');
+    
+    if (!apiKey) {
+      throw new Error('API Key missing. Please set it in Settings/Onboarding.');
+    }
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
         model: 'claude-3-5-sonnet-20241022',
         max_tokens: 1024,
         system: NOVA_SYSTEM_PROMPT + systemContext,
         messages: messages,
         tools: tools
-      },
-      {
-        headers: {
-          'x-api-key': ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json'
-        }
-      }
-    );
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(`API Error: ${data.error?.message || 'Unknown error'}`);
+    }
 
     let finalReply = '';
     let emotionDetected: NovaEmotion = 'neutral';
     
     // 3. Handle tools or direct text
-    const responseBlocks = response.data.content;
+    const responseBlocks = data.content;
     for (const block of responseBlocks) {
       if (block.type === 'text') {
         finalReply += block.text;
